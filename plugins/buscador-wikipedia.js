@@ -1,16 +1,9 @@
 import axios from 'axios';
-import fetch from 'node-fetch';
 import cheerio from 'cheerio';
 
-
-async function wikipedia(querry) {
-  const datas = global
-  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje
-  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`))
-  const tradutor = _translate.plugins.buscador_wikipedia
-
+async function wikipedia(query) {
   try {
-    const link = await axios.get(`https://es.wikipedia.org/wiki/${querry}`);
+    const link = await axios.get(`https://es.wikipedia.org/wiki/${query}`);
     const $ = cheerio.load(link.data);
     const judul = $('#firstHeading').text().trim();
     const thumb = $('#mw-content-text').find('div.mw-parser-output > div:nth-child(1) > table > tbody > tr:nth-child(2) > td > a > img').attr('src') || `//i.ibb.co/nzqPBpC/http-error-404-not-found.png`;
@@ -25,25 +18,35 @@ async function wikipedia(querry) {
         result: {
           judul: judul,
           thumb: 'https:' + thumb,
-          isi: i}};
+          isi: i
+        }
+      };
       return data;
     }
   } catch (err) {
-    const notFond = {
-      status: link.status,
-      Pesan: eror};
-    return notFond;
+    console.error(err);
+    return {
+      status: 404,
+      message: 'No se encontró la página solicitada.'
+    };
   }
 }
-const handler = async (m, {conn, text, usedPrefix, command}) => {
-  if (!text) throw `*${tradutor.texto1[0]} *${usedPrefix + command} ${tradutor.texto1[1]} *${usedPrefix + command} Estrellas*`;
+
+const handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text) throw `Uso: ${usedPrefix + command} <término de búsqueda>\nEjemplo: ${usedPrefix + command} Estrellas`;
   wikipedia(`${text}`).then((res) => {
-    m.reply(`*${tradutor.texto2}*\n\n` + res.result.isi);
-  }).catch(() => {
-    m.reply(`*${tradutor.texto3}*`);
+    if (res.status === 404) {
+      m.reply('No se encontró la página solicitada.');
+    } else {
+      m.reply(`*Resultado de Wikipedia:*\n\n${res.result.isi}`);
+    }
+  }).catch((err) => {
+    console.error(err);
+    m.reply('Hubo un error al buscar en Wikipedia.');
   });
 };
-handler.help = ['wikipedia'].map((v) => v + ' <apa>');
+
+handler.help = ['wikipedia'].map((v) => v + ' <término de búsqueda>');
 handler.tags = ['internet'];
 handler.command = /^(wiki|wikipedia)$/i;
 export default handler;

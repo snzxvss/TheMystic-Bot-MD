@@ -13,7 +13,7 @@ const handler = async (m, { conn, args, command, usedPrefix, text }) => {
   try {
     conn.reply(m.chat, `${tradutor.texto3}`, m);
     const res = await xvideosdl(args[0]);
-    conn.sendMessage(m.chat, { document: { url: res.result.url }, mimetype: 'video/mp4', fileName: res.result.title }, { quoted: m });
+    conn.sendMessage(m.chat, { video: { url: res.result.url }, mimetype: 'video/mp4', fileName: res.result.title }, { quoted: m });
   } catch (e) {
     throw `${tradutor.texto4}\n*◉ https://www.xvideos.com/video70389849/pequena_zorra_follada_duro*`;
   }

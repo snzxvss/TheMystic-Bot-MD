@@ -41,10 +41,11 @@ const handler = async (m, { conn, command, args, text, usedPrefix }) => {
   const texto1 = `${tradutor.texto2[0]} ${yt_play[0].title}\n${tradutor.texto2[1]} ${yt_play[0].ago}\n${tradutor.texto2[2]} ${secondString(yt_play[0].duration.seconds)}\n${tradutor.texto2[3]} ${MilesNumber(yt_play[0].views)}\n${tradutor.texto2[4]} ${yt_play[0].author.name}\n${tradutor.texto2[5]} ${yt_play[0].videoId}\n${tradutor.texto2[6]} ${yt_play[0].type}\n${tradutor.texto2[7]} ${yt_play[0].url}\n${tradutor.texto2[8]} ${yt_play[0].author.url}\n\n> ${tradutor.texto2[9]} ${additionalText}, ${tradutor.texto2[10]}`.trim();
 
   conn.sendMessage(m.chat, { image: { url: yt_play[0].thumbnail }, caption: texto1 }, { quoted: m });
+  const cookiesPath = path.join(__dirname, 'cookies.txt'); // Ruta al archivo de cookies
 
   if (['play', 'play3', 'playdoc'].includes(command)) {
     try {
-      const buff_aud = await downloadMedia(yt_play[0].url, 'audio');
+      const buff_aud = await downloadMedia(yt_play[0].url, 'audio', cookiesPath);
       const fileSizeInBytes = buff_aud.byteLength;
       const fileSizeInKB = fileSizeInBytes / 1024;
       const fileSizeInMB = fileSizeInKB / 1024;
@@ -70,7 +71,7 @@ const handler = async (m, { conn, command, args, text, usedPrefix }) => {
 
   if (['play2', 'play4', 'playdoc2'].includes(command)) {
     try {
-      const buff_vid = await downloadMedia(yt_play[0].url, 'video');
+      const buff_vid = await downloadMedia(yt_play[0].url, 'video', cookiesPath);
       const fileSizeInBytes2 = buff_vid.byteLength;
       const fileSizeInKB2 = fileSizeInBytes2 / 1024;
       const fileSizeInMB2 = fileSizeInKB2 / 1024;
@@ -104,7 +105,7 @@ async function search(query, options = {}) {
   return search.videos;
 }
 
-async function downloadMedia(url, type) {
+async function downloadMedia(url, type, cookiesPath) {
   return new Promise((resolve, reject) => {
     const tempDir = path.join(__dirname, 'temp');
     if (!fs.existsSync(tempDir)) {
@@ -116,7 +117,8 @@ async function downloadMedia(url, type) {
       noPlaylist: true,
       output: outputFilePath,
       format: type === 'video' ? 'bestvideo[height<=480]+bestaudio' : 'bestaudio', // Reducir calidad de video a 480p
-      mergeOutputFormat: type === 'video' ? 'mp4' : undefined
+      mergeOutputFormat: type === 'video' ? 'mp4' : undefined,
+      cookies: cookiesPath 
     };
 
     if (type === 'audio') {
