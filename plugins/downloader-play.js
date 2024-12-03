@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 const { exec } = pkg;
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-// Definir __dirname manualmente
+// Definir __dirname manualmente.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
