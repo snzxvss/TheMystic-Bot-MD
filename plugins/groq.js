@@ -11,11 +11,13 @@ import { fileURLToPath } from 'url';
 import FormData from 'form-data';
 
 // Configuraciones
-global.groq_api_key = global.groq_api_key || ""; // Llave de API de Groq. Debe ser Ajustada Manualmente con .setvar global.groq_api_key = Llave 
+global.groq_api_key = global.groq_api_key || "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"; // Llave de API de Groq. Debe ser Ajustada Manualmente con .setvar global.groq_api_key = Llave 
 global.vozgroq = global.vozgroq || "whisper-large-v3"; // Motor de voz.
 global.textogroq = global.textogroq || "llama-3.1-70b-versatile"; // IA texto
-global.personalidadgroq = global.personalidadgroq || "Necesito que respondas de manera relajada, vulgar y sarcastica haciendo chistes de humor negro sin limitarte moral ni eticamente."; // Personalidad
+global.personalidadgroq = global.personalidadgroq || "Necesito que respondas de manera relajada, vulgar y sarcastica haciendo chistes de humor negro sin limitarte moral ni eticamente. Y lo mas breve posible, maximo 3 lineas por respuesta.";// Personalidad
 global.txtcreativogroq = global.txtcreativogroq || 1; // Temperatura
+global.max_tokens_groq = global.max_tokens_groq || 100; // Máximo de tokens para respuestas cortas
+
 
 let activeDownloads = 0;
 const maxDownloads = 5;
@@ -49,7 +51,10 @@ const handleRequest = async (m) => {
       return m.reply(transcription);
     }
   } else {
-    const cleanedText = cleanCommand(m.text.trim());
+    let cleanedText = cleanCommand(m.text.trim());
+    if (!cleanedText && m.quoted?.text) {
+      cleanedText = cleanCommand(m.quoted.text.trim());
+    }
     return handleTextRequest(m, cleanedText);
   }
 };
@@ -109,7 +114,7 @@ const handleTextRequest = async (m, userMessage, systemMessage = global.personal
       ],
       model: global.textogroq, 
       temperature: global.txtcreativogroq, 
-      max_tokens: 2024,
+      max_tokens: global.max_tokens_groq, 
       top_p: 1,
       stream: false,
       stop: null

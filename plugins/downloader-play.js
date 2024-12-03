@@ -7,6 +7,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 const { exec } = pkg;
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -112,7 +113,8 @@ async function downloadMedia(url, type, cookiesPath) {
       fs.mkdirSync(tempDir);
     }
 
-    const outputFilePath = path.join(tempDir, `media.${type === 'audio' ? 'mp3' : 'mp4'}`);
+    const requestId = uuidv4();
+    const outputFilePath = path.join(tempDir, `${requestId}_media.${type === 'audio' ? 'mp3' : 'mp4'}`);
     const options = {
       noPlaylist: true,
       output: outputFilePath,
@@ -135,7 +137,7 @@ async function downloadMedia(url, type, cookiesPath) {
         reject(Buffer.concat(errors).toString());
       } else {
         if (type === 'video') {
-          const convertedFilePath = path.join(tempDir, `converted_media.mp4`);
+          const convertedFilePath = path.join(tempDir, `${requestId}_converted_media.mp4`);
           ffmpeg(outputFilePath)
             .output(convertedFilePath)
             .on('end', () => {

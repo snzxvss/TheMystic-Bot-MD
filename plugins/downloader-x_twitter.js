@@ -1,70 +1,73 @@
 import axios from 'axios';
+import fs from 'fs';
 
 let enviando = false;
-const handler = async (m, {conn, text, usedPrefix, command}) => {
-  const datas = global
-  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje
-  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`))
-  const tradutor = _translate.plugins.downloader_x_twitter
 
+const handler = async (m, { conn, text, usedPrefix, command }) => {
+  const datas = global;
+  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje;
+  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`));
+  const tradutor = _translate.plugins.downloader_x_twitter;
 
-if (!text) throw `${tradutor.texto1} ${usedPrefix + command}* https://twitter.com/auronplay/status/1586487664274206720?s=20&t=3snvkvwGUIez5iWYQAehpw`;
-if (enviando) return;
-    enviando = true;
-try {
-   await conn.sendMessage(m.chat, {text: global.wait}, {quoted: m}); 
-   const res = await TwitterDL(text);
- if (res?.result.type == 'video') {
-     const caption = res?.result.caption ? res.result.caption : tradutor.texto2;
-     for (let i = 0; i < res.result.media.length; i++) {
-     await conn.sendMessage(m.chat, {video: {url: res.result.media[i].result[0].url}, caption: caption}, {quoted: m});
-     };
-     enviando = false;
-     return;
- } else if (res?.result.type == 'photo') {
-     const caption = res?.result.caption ? res.result.caption : tradutor.texto2;
-     for (let i = 0; i < res.result.media.length; i++) {
-     await conn.sendMessage(m.chat, {image: {url: res.result.media[i].url}, caption: caption}, {quoted: m});
-     };
-     enviando = false;
-     return;
-  }
-} catch {
+  if (!text) throw `${tradutor.texto1} ${usedPrefix + command}* https://twitter.com/auronplay/status/1586487664274206720?s=20&t=3snvkvwGUIez5iWYQAehpw`;
+  if (enviando) return;
+  enviando = true;
+  try {
+    await conn.sendMessage(m.chat, { text: global.wait }, { quoted: m });
+    const res = await TwitterDL(text);
+    if (res?.result.type == 'video') {
+      const caption = res?.result.caption ? res.result.caption : tradutor.texto2;
+      for (let i = 0; i < res.result.media.length; i++) {
+        await conn.sendMessage(m.chat, { video: { url: res.result.media[i].result[0].url }, caption: caption }, { quoted: m });
+      }
+      enviando = false;
+      return;
+    } else if (res?.result.type == 'photo') {
+      const caption = res?.result.caption ? res.result.caption : tradutor.texto2;
+      for (let i = 0; i < res.result.media.length; i++) {
+        await conn.sendMessage(m.chat, { image: { url: res.result.media[i].url }, caption: caption }, { quoted: m });
+      }
+      enviando = false;
+      return;
+    }
+  } catch (error) {
+    console.error('Error occurred:', error);
     enviando = false;
     throw tradutor.texto3;
-    return;
   }
-};    
+};
+
 handler.command = /^((x|xdl|dlx|twdl|tw|twt|twitter)(dl)?)$/i;
 export default handler;
 
 const _twitterapi = (id) => `https://info.tweeload.site/status/${id}.json`;
+
 const getAuthorization = async () => {
-    const { data } = await axios.default.get("https://pastebin.com/raw/SnCfd4ru");
-    return data;
+  const { data } = await axios.get("https://pastebin.com/raw/SnCfd4ru");
+  return data;
 };
+
 const TwitterDL = async (url) => {
   return new Promise(async (resolve, reject) => {
     const id = url.match(/\/([\d]+)/);
     if (!id)
       return resolve({
         status: "error",
-        message:
-          tradutor.texto4,
+        message: "Invalid URL",
       });
-      const response = await axios.default(_twitterapi(id[1]), {
-        method: "GET",
+
+    try {
+      const response = await axios.get(_twitterapi(id[1]), {
         headers: {
           Authorization: await getAuthorization(),
-          "user-agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36",
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36",
         },
       });
 
       if (response.data.code !== 200) {
         return resolve({
           status: "error",
-          message: tradutor.texto5,
+          message: "Failed to fetch video",
         });
       }
 
@@ -124,5 +127,12 @@ const TwitterDL = async (url) => {
           media: media.length !== 0 ? media : null,
         },
       });
+    } catch (error) {
+      console.error('Failed to fetch video:', error);
+      resolve({
+        status: "error",
+        message: "Failed to fetch video",
+      });
+    }
   });
 };

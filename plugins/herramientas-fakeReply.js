@@ -1,28 +1,53 @@
 
 
-const handler = async (m, {conn, text, usedPrefix, command}) => {
-  const datas = global
-  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje
-  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`))
-  const tradutor = _translate.plugins.herramientas_fakereply
+const handler = async (m, { conn, text, usedPrefix, command }) => {
+  const datas = global;
+  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje;
+  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`));
+  const tradutor = _translate.plugins.herramientas_fakereply;
 
-  if (!text) return m.reply(`${tradutor.texto1[0]}\n\n*${usedPrefix + command}* ${tradutor.texto1[1]} @${m.sender.split`@`[0]} a`, null, {mentions: [m.sender]});
+  if (!text) {
+    return m.reply(`${tradutor.texto1[0]}\n\n*${usedPrefix + command}* ${tradutor.texto1[1]} @${m.sender.split`@`[0]} a`, null, { mentions: [m.sender] });
+  }
+
   const cm = copy(m);
   let who;
-  if (text.includes('@0')) who = '0@s.whatsapp.net';
-  else if (m.isGroup) who = cm.participant = m.mentionedJid[0];
-  else who = m.chat;
-  if (!who) return m.reply(`${tradutor.texto1[0]}\n\n*${usedPrefix + command}* ${tradutor.texto1[1]} @${m.sender.split`@`[0]} a`, null, {mentions: [m.sender]});
+
+  if (text.includes('@0')) {
+    who = '0@s.whatsapp.net';
+  } else if (m.isGroup) {
+    if (!m.mentionedJid || m.mentionedJid.length === 0) {
+      return m.reply(`${tradutor.texto1[0]}\n\n*${usedPrefix + command}* ${tradutor.texto1[1]} @${m.sender.split`@`[0]} a`, null, { mentions: [m.sender] });
+    }
+    who = cm.participant = m.mentionedJid[0];
+  } else {
+    who = m.chat;
+  }
+
+  if (!who) {
+    return m.reply(`${tradutor.texto1[0]}\n\n*${usedPrefix + command}* ${tradutor.texto1[1]} @${m.sender.split`@`[0]} a`, null, { mentions: [m.sender] });
+  }
+
   cm.key.fromMe = false;
   cm.message[m.mtype] = copy(m.msg);
+
   const sp = '@' + who.split`@`[0];
   const [fake, ...real] = text.split(sp);
-  conn.fakeReply(m.chat, real.join(sp).trimStart(), who, fake.trimEnd(), m.isGroup ? m.chat : false, {
+
+  const fakeText = fake.trim();
+  const realText = real.join(sp).trim();
+
+  console.log('Fake part:', fakeText);
+  console.log('Real part:', realText);
+  console.log('Who:', who);
+
+  await conn.fakeReply(m.chat, realText, who, fakeText, m.isGroup ? m.chat : false, {
     contextInfo: {
-      mentionedJid: conn.parseMention(real.join(sp).trim()),
+      mentionedJid: conn.parseMention(realText),
     },
   });
 };
+
 handler.help = ['fake <text> @user <text2>'];
 handler.tags = ['tools'];
 handler.command = /^(fitnah|fakereply|fake)$/;

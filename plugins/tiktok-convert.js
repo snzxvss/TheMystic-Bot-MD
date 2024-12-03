@@ -1,6 +1,6 @@
-const { request, fetch } = require('undici');
-const querystring = require("querystring");
-const { Buffer } = require('buffer');
+import { request, fetch } from 'undici';
+import querystring from 'querystring';
+import { Buffer } from 'buffer';
 
 /**
 * @typedef {Object} Media
@@ -27,29 +27,28 @@ const { Buffer } = require('buffer');
 * @property {?string} sid - The session ID associated with the video (can be null)
 */
 
-const apiUrl = 'https://snapdouyin.app/wp-json/aio-dl/video-data/'
+const apiUrl = 'https://snapdouyin.app/wp-json/aio-dl/video-data/';
 
 const headers = {
     "content-type": "application/x-www-form-urlencoded",
-}
+};
 
 /**
  * 
  * @public
  * @example
  * // Receives a response from the server
- * const result = await dt.downloadTiktok(url)
+ * const result = await downloadTiktok(url)
  * @param {string} url 
  * @returns {Promise<TiktokVideo>}
  */
-async function downloadTiktok(url) {
+export async function downloadTiktok(url) {
     try {
         const options = querystring.stringify({ url });
 
-        const response = await request(apiUrl, { method: "POST", body: options, headers })
+        const response = await request(apiUrl, { method: "POST", body: options, headers });
 
-        // @ts-expect-error How to do it properly without resorting to ts?
-        return await response.body.json()
+        return await response.body.json();
     } catch (error) {
         throw new Error(`An error occurred: ${error.message}`);
     }
@@ -60,13 +59,13 @@ async function downloadTiktok(url) {
  * @public
  * @example
  * // Receives a response from the server
- * const result = await dt.downloadTiktok(url)
+ * const result = await downloadTiktok(url)
  * // Get the buffer
- * const buffer = dt.getBufferFromURL(result.medias[0].url)
+ * const buffer = await getBufferFromURL(result.medias[0].url)
  * @param {string} url
  * @returns {Promise<Buffer>}
  */
-async function getBufferFromURL(url) {
+export async function getBufferFromURL(url) {
     try {
         const response = await fetch(url);
 
@@ -83,17 +82,17 @@ async function getBufferFromURL(url) {
  * @public
  * @example 
  * // Receives a response from the server
- * const result = await dt.downloadTiktok(url)
+ * const result = await downloadTiktok(url)
  * // Get the best content in a limited size
  * // 50 * 1024 * 1024 is 52428800 bytes or 50 megabytes
- * const bestMedia = dt.getBestMediaWithinLimit(result.medias, 50 * 1024 * 1024)
+ * const bestMedia = getBestMediaWithinLimit(result.medias, 50 * 1024 * 1024)
  * @param {Media[]} medias 
  * @param {number} limitedSizeBytes 
  * @returns {Media}
  */
-function getBestMediaWithinLimit(medias, limitedSizeBytes) {
+export function getBestMediaWithinLimit(medias, limitedSizeBytes) {
     return medias.filter(media => media.size <= limitedSizeBytes)
-        .sort((a, b) => b.size - a.size)[0] || null
+        .sort((a, b) => b.size - a.size)[0] || null;
 }
 
 /**
@@ -101,14 +100,14 @@ function getBestMediaWithinLimit(medias, limitedSizeBytes) {
  * @public
  * @example
  * // Receives a response from the server
- * const result = await dt.downloadTiktok(url)
+ * const result = await downloadTiktok(url)
  * // Get videos without watermark
- * const noWatermark = dt.filterNoWatermark(result.medias)
+ * const noWatermark = filterNoWatermark(result.medias)
  * @param {Media[]} medias 
  * @returns {Media[]}
  */
-function filterNoWatermark(medias) {
-    return medias.filter(media => media.quality !== 'watermark')
+export function filterNoWatermark(medias) {
+    return medias.filter(media => media.quality !== 'watermark');
 }
 
 /**
@@ -116,14 +115,14 @@ function filterNoWatermark(medias) {
  * @public
  * @example
  * // Receives a response from the server
- * const result = await dt.downloadTiktok(url)
+ * const result = await downloadTiktok(url)
  * // Get videos
- * const noWatermark = dt.filterVideo(result.medias)
+ * const noWatermark = filterVideo(result.medias)
  * @param {Media[]} medias 
  * @returns {Media[]}
  */
-function filterVideo(medias) {
-    return medias.filter(media => media.videoAvailable && media.audioAvailable)
+export function filterVideo(medias) {
+    return medias.filter(media => media.videoAvailable && media.audioAvailable);
 }
 
 /**
@@ -131,14 +130,12 @@ function filterVideo(medias) {
  * @public
  * @example
  * // Receives a response from the server
- * const result = await dt.downloadTiktok(url)
+ * const result = await downloadTiktok(url)
  * // Get audios
- * const noWatermark = dt.filterAudio(result.medias)
+ * const noWatermark = filterAudio(result.medias)
  * @param {Media[]} medias 
  * @returns {Media[]}
  */
-function filterAudio(medias) {
-    return medias.filter(media => !media.videoAvailable && media.audioAvailable)
+export function filterAudio(medias) {
+    return medias.filter(media => !media.videoAvailable && media.audioAvailable);
 }
-
-module.exports = { downloadTiktok, getBufferFromURL, getBestMediaWithinLimit, filterNoWatermark, filterVideo, filterAudio }

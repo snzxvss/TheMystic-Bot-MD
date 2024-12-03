@@ -1,9 +1,9 @@
-import fetch from 'node-fetch';
 import axios from 'axios';
 import fs from 'fs';
+import getFbVideoInfo from 'fb-downloader-scrapper';
 let enviando = false;
 
-const handler = async (m, {conn, args, command, usedPrefix}) => {
+const handler = async (m, { conn, args, command, usedPrefix }) => {
   const idioma = global.db.data.users[m.sender].language || global.defaultLenguaje;
   const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`));
   const tradutor = _translate.plugins.descargas_facebook;
@@ -14,22 +14,14 @@ const handler = async (m, {conn, args, command, usedPrefix}) => {
 
   if (!enviando) enviando = true;
   try {
-    
-    const response = await fetch(`${global.MyApiRestBaseUrl}/api/facebook?url=${args[0]}&apikey=${global.MyApiRestApikey}`);
-    const data = await response.json();
-
-    if (data?.status === true) {
-      const videoBuffer = await getBuffer(data.resultado.data);
-      await conn.sendMessage(m.chat, { video: videoBuffer, filename: 'video.mp4', caption: `_*${tradutor.texto4}*_` }, {quoted: m});
-      enviando = false;
-    } else {
-      console.error('Failed to fetch video data from API:', data);
-      enviando = false;
-    }
+    const videoUrl = await getFacebookVideoUrl(args[0]);
+    const videoBuffer = await getBuffer(videoUrl);
+    await conn.sendMessage(m.chat, { video: videoBuffer, filename: 'video.mp4', caption: `_*${tradutor.texto4}*_` }, { quoted: m });
+    enviando = false;
   } catch (error) {
     console.error('Error occurred:', error);
     enviando = false;
-    throw `_*${tradutor.texto5}*`;
+    throw `_*${tradutor.texto5}*_`;
   }
 };
 
@@ -38,11 +30,29 @@ export default handler;
 
 const getBuffer = async (url, options = {}) => {
   const res = await axios({
-    method: 'get', 
-    url, 
-    headers: {'DNT': 1, 'Upgrade-Insecure-Request': 1},
-    ...options, 
+    method: 'get',
+    url,
+    headers: { 'DNT': 1, 'Upgrade-Insecure-Request': 1 },
+    ...options,
     responseType: 'arraybuffer'
   });
   return res.data;
+};
+
+const getFacebookVideoUrl = async (url) => {
+  try {
+    const cookies = fs.readFileSync('cookies-facebook.txt', 'utf8').trim();
+    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+    const result = await getFbVideoInfo(url, cookies, userAgent);
+    if (result.hd) {
+      return result.hd;
+    } else if (result.sd) {
+      return result.sd;
+    } else {
+      throw new Error('Video URL not found');
+    }
+  } catch (error) {
+    console.error('Failed to extract video URL:', error);
+    throw new Error('Failed to extract video URL');
+  }
 };

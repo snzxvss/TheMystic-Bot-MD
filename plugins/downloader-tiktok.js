@@ -1,8 +1,5 @@
-import axios from 'axios';
-import cheerio from 'cheerio';
 import { generateWAMessageFromContent } from "baileys";
-import { tiktokdl } from '@bochilteam/scraper';
-import { downloadTiktok, getBufferFromURL, getBestMediaWithinLimit, filterNoWatermark, filterVideo, filterAudio } from './tiktok-convert'; // Asegúrate de ajustar la ruta según tu estructura de proyecto
+import Tiktok from "@tobyg74/tiktok-api-dl";
 
 const handler = async (m, { conn, text, args, usedPrefix, command }) => {
   const datas = global;
@@ -16,21 +13,55 @@ const handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
   try {
     const aa = { quoted: m, userJid: conn.user.jid };
-    const prep = generateWAMessageFromContent(m.chat, { extendedTextMessage: { text: texto, contextInfo: { externalAdReply: { title: 'ᴛʜᴇ ᴍʏsᴛɪᴄ - ʙᴏᴛ', body: null, thumbnail: imagen1, sourceUrl: 'https://github.com/BrunoSobrino/TheMystic-Bot-MD' }, mentionedJid: [m.sender] } } }, aa);
+    const prep = generateWAMessageFromContent(m.chat, {
+      extendedTextMessage: {
+        text: texto,
+        contextInfo: {
+          mentionedJid: [m.sender]
+        }
+      }
+    }, aa);
     await conn.relayMessage(m.chat, prep.message, { messageId: prep.key.id, mentions: [m.sender] });
 
-    const result = await downloadTiktok(args[0]);
-    const noWatermark = filterNoWatermark(result.medias);
-    const bestMedia = getBestMediaWithinLimit(noWatermark, 50 * 1024 * 1024); // 50 MB limit
-
-    if (!bestMedia) throw new Error('No se encontró un video adecuado sin marca de agua.');
-
-    const buffer = await getBufferFromURL(bestMedia.url);
-    const desc = `${tradutor.texto4[0]} _${usedPrefix}tomp3_ ${tradutor.texto4[1]}`;
-    await conn.sendMessage(m.chat, { video: buffer, caption: desc }, { quoted: m });
-  } catch (err) {
-    console.error(err);
-    throw `Error al descargar el contenido. Asegúrate de que el enlace sea correcto.\n*◉ https://www.tiktok.com/`;
+    const result = await Tiktok.Downloader(args[0], { version: "v1" });
+    if (result.status === "success") {
+      const desc1n = `${tradutor.texto4[0]} _${usedPrefix}tomp3_ ${tradutor.texto4[1]}`;
+      await conn.sendMessage(m.chat, { video: { url: result.result.video.downloadAddr }, caption: desc1n }, { quoted: m });
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (ee1) {
+    try {
+      const result = await Tiktok.Downloader(args[0], { version: "v1" });
+      if (result.status === "success") {
+        const desc1 = `${tradutor.texto5[0]} _${usedPrefix}tomp3_ ${tradutor.texto5[1]}`;
+        await conn.sendMessage(m.chat, { video: { url: result.result.video.downloadAddr }, caption: desc1 }, { quoted: m });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (e1) {
+      try {
+        const result = await Tiktok.Downloader(args[0], { version: "v1" });
+        if (result.status === "success") {
+          const desc2 = `${tradutor.texto6[0]} _${usedPrefix}tomp3_ ${tradutor.texto6[1]}`;
+          await conn.sendMessage(m.chat, { video: { url: result.result.video.downloadAddr }, caption: desc2 }, { quoted: m });
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (e2) {
+        try {
+          const result = await Tiktok.Downloader(args[0], { version: "v1" });
+          if (result.status === "success") {
+            const cap = `${tradutor.texto8[0]} _${usedPrefix}tomp3_ ${tradutor.texto8[1]}`;
+            await conn.sendMessage(m.chat, { video: { url: result.result.video.downloadAddr }, caption: cap }, { quoted: m });
+          } else {
+            throw new Error(result.message);
+          }
+        } catch {
+          throw `${tradutor.texto9}`;
+        }
+      }
+    }
   }
 };
 
