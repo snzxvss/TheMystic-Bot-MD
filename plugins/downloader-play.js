@@ -1,20 +1,6 @@
 import axios from 'axios';
 import fs from "fs";
 import yts from 'yt-search';
-import path from 'path';
-import pkg from 'youtube-dl-exec';
-import ffmpeg from 'fluent-ffmpeg';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-const { exec } = pkg;
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-
-// Definir __dirname manualmente.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 let limit1 = 100;
 let limit2 = 400;
@@ -42,11 +28,17 @@ const handler = async (m, { conn, command, args, text, usedPrefix }) => {
   const texto1 = `${tradutor.texto2[0]} ${yt_play[0].title}\n${tradutor.texto2[1]} ${yt_play[0].ago}\n${tradutor.texto2[2]} ${secondString(yt_play[0].duration.seconds)}\n${tradutor.texto2[3]} ${MilesNumber(yt_play[0].views)}\n${tradutor.texto2[4]} ${yt_play[0].author.name}\n${tradutor.texto2[5]} ${yt_play[0].videoId}\n${tradutor.texto2[6]} ${yt_play[0].type}\n${tradutor.texto2[7]} ${yt_play[0].url}\n${tradutor.texto2[8]} ${yt_play[0].author.url}\n\n> ${tradutor.texto2[9]} ${additionalText}, ${tradutor.texto2[10]}`.trim();
 
   conn.sendMessage(m.chat, { image: { url: yt_play[0].thumbnail }, caption: texto1 }, { quoted: m });
-  const cookiesPath = path.join(__dirname, 'cookies.txt'); // Ruta al archivo de cookies
 
   if (['play', 'play3', 'playdoc'].includes(command)) {
     try {
-      const buff_aud = await downloadMedia(yt_play[0].url, 'audio', cookiesPath);
+      const response = await axios.get(`http://40.86.184.153/download`, {
+        params: {
+          url: yt_play[0].url,
+          type: 'audio'
+        },
+        responseType: 'arraybuffer'
+      });
+      const buff_aud = response.data;
       const fileSizeInBytes = buff_aud.byteLength;
       const fileSizeInKB = fileSizeInBytes / 1024;
       const fileSizeInMB = fileSizeInKB / 1024;
@@ -72,7 +64,14 @@ const handler = async (m, { conn, command, args, text, usedPrefix }) => {
 
   if (['play2', 'play4', 'playdoc2'].includes(command)) {
     try {
-      const buff_vid = await downloadMedia(yt_play[0].url, 'video', cookiesPath);
+      const response = await axios.get(`http://40.86.184.153/download`, {
+        params: {
+          url: yt_play[0].url,
+          type: 'video'
+        },
+        responseType: 'arraybuffer'
+      });
+      const buff_vid = response.data;
       const fileSizeInBytes2 = buff_vid.byteLength;
       const fileSizeInKB2 = fileSizeInBytes2 / 1024;
       const fileSizeInMB2 = fileSizeInKB2 / 1024;
@@ -102,77 +101,8 @@ handler.command = /^(play|play2|play3|play4|playdoc|playdoc2)$/i;
 export default handler;
 
 async function search(query, options = {}) {
-  const search = await yts.search({query, hl: 'es', gl: 'ES', ...options});
+  const search = await yts.search({ query, hl: 'es', gl: 'ES', ...options });
   return search.videos;
-}
-
-async function downloadMedia(url, type, cookiesPath) {
-  return new Promise((resolve, reject) => {
-    const tempDir = path.join(__dirname, 'temp');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir);
-    }
-
-    const requestId = uuidv4();
-    const outputFilePath = path.join(tempDir, `${requestId}_media.${type === 'audio' ? 'mp3' : 'mp4'}`);
-    const options = {
-      noPlaylist: true,
-      output: outputFilePath,
-      format: type === 'video' ? 'bestvideo[height<=480]+bestaudio' : 'bestaudio', // Reducir calidad de video a 480p
-      mergeOutputFormat: type === 'video' ? 'mp4' : undefined,
-      cookies: cookiesPath 
-    };
-
-    if (type === 'audio') {
-      options.extractAudio = true;
-      options.audioFormat = 'mp3';
-    }
-
-    const process = exec(url, options, { stdio: ['ignore', 'pipe', 'pipe'] });
-    const errors = [];
-
-    process.stderr.on('data', chunk => errors.push(chunk));
-    process.on('close', (code) => {
-      if (code !== 0 || errors.length > 0) {
-        reject(Buffer.concat(errors).toString());
-      } else {
-        if (type === 'video') {
-          const convertedFilePath = path.join(tempDir, `${requestId}_converted_media.mp4`);
-          ffmpeg(outputFilePath)
-            .output(convertedFilePath)
-            .on('end', () => {
-              fs.readFile(convertedFilePath, (err, data) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve(data);
-                  fs.unlink(outputFilePath, (unlinkErr) => {
-                    if (unlinkErr) console.error('Error deleting temp file:', unlinkErr);
-                  });
-                  fs.unlink(convertedFilePath, (unlinkErr) => {
-                    if (unlinkErr) console.error('Error deleting converted temp file:', unlinkErr);
-                  });
-                }
-              });
-            })
-            .on('error', reject)
-            .run();
-        } else {
-          fs.readFile(outputFilePath, (err, data) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(data);
-              fs.unlink(outputFilePath, (unlinkErr) => {
-                if (unlinkErr) console.error('Error deleting temp file:', unlinkErr);
-              });
-            }
-          });
-        }
-      }
-    });
-    process.on('error', reject);
-  });
 }
 
 function MilesNumber(number) {
@@ -195,19 +125,3 @@ function secondString(seconds) {
   const sDisplay = s > 0 ? s + (s == 1 ? 's' : 's') : '';
   return dDisplay + hDisplay + mDisplay + sDisplay;
 }
-
-function bytesToSize(bytes) {
-  return new Promise((resolve, reject) => {
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    if (bytes === 0) return 'n/a';
-    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)), 10);
-    if (i === 0) resolve(`${bytes} ${sizes[i]}`);
-    resolve(`${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`);
-  });
-}
-
-const getBuffer = async (url, options) => {
-    options ? options : {};
-    const res = await axios({method: 'get', url, headers: {'DNT': 1, 'Upgrade-Insecure-Request': 1,}, ...options, responseType: 'arraybuffer'});
-    return res.data;
-};
