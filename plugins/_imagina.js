@@ -12,16 +12,32 @@ const __dirname = dirname(__filename);
 // Definir el directorio temporal dentro de la carpeta del plugin
 const tempDir = path.join(__dirname, 'temp');
 
+console.log(`🖼️ IMAGINA - Inicializando directorio temporal en: ${tempDir}`);
+
 // Asegurar que el directorio temporal exista
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
+try {
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+    console.log('🖼️ IMAGINA - Directorio temporal creado exitosamente.');
+  } else {
+    console.log('🖼️ IMAGINA - Directorio temporal ya existe.');
+  }
+} catch (mkdirErr) {
+  console.error('🖼️ IMAGINA - Error al crear el directorio temporal:', mkdirErr);
+  // Opcional: Terminar la ejecución si no se puede crear el directorio temporal
+  process.exit(1);
 }
 
 // Función para limpiar archivos temporales no enviados
 const clearTmp = () => {
+  console.log('🖼️ IMAGINA - Iniciando limpieza de archivos temporales...');
   fs.readdir(tempDir, (err, files) => {
     if (err) {
       console.error('🖼️ IMAGINA - LIMPIEZA TEMPORAL\n\n⚠️ No se pudo leer el directorio temporal:', err);
+      return;
+    }
+    if (files.length === 0) {
+      console.log('🖼️ IMAGINA - No hay archivos temporales para eliminar.');
       return;
     }
     files.forEach(file => {
@@ -29,6 +45,8 @@ const clearTmp = () => {
       fs.unlink(filePath, err => {
         if (err) {
           console.error('🖼️ IMAGINA - LIMPIEZA TEMPORAL\n\n⚠️ No se pudo eliminar el archivo temporal:', err);
+        } else {
+          console.log(`🖼️ IMAGINA - Archivo temporal eliminado: ${filePath}`);
         }
       });
     });
@@ -68,27 +86,36 @@ _${usedPrefix + command} Playa al atardecer_`;
         }
       };
 
+      console.log('🖼️ IMAGINA - Enviando solicitud al API para generar imagen.');
+
       const imageUrl = await new Promise((resolve, reject) => {
         const req = https.request(options, (res) => {
           let data = '';
 
           res.on('data', (chunk) => { data += chunk; });
           res.on('end', () => {
+            console.log(`🖼️ IMAGINA - Respuesta del API con status code: ${res.statusCode}`);
             if (res.statusCode === 200) {
               try {
                 const responseData = JSON.parse(data);
                 const url = responseData.data.message[0].url;
+                console.log('🖼️ IMAGINA - URL de la imagen generada:', url);
                 resolve(url);
               } catch (err) {
+                console.error('🖼️ IMAGINA - Error al parsear la respuesta del API:', err);
                 reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al analizar la respuesta del API.');
               }
             } else {
+              console.error(`🖼️ IMAGINA - Error en la solicitud al API: Status Code ${res.statusCode}`);
               reject(`🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error en la solicitud: ${res.statusCode}`);
             }
           });
         });
 
-        req.on('error', () => { reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al generar la imagen.'); });
+        req.on('error', (err) => {
+          console.error('🖼️ IMAGINA - Error en la solicitud al API:', err);
+          reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al generar la imagen.');
+        });
         req.write(postData);
         req.end();
       });
@@ -96,33 +123,47 @@ _${usedPrefix + command} Playa al atardecer_`;
       // Generar nombre de archivo único
       const fileName = `${uuidv4()}_imagen.jpg`;
       const filePath = path.join(tempDir, fileName);
+      console.log(`🖼️ IMAGINA - Descargando imagen desde URL: ${imageUrl}`);
 
       // Descargar la imagen y guardarla en el directorio temporal
       await new Promise((resolve, reject) => {
         const file = fs.createWriteStream(filePath);
         https.get(imageUrl, (imageRes) => {
+          if (imageRes.statusCode !== 200) {
+            console.error(`🖼️ IMAGINA - Error al descargar la imagen: Status Code ${imageRes.statusCode}`);
+            reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.');
+            return;
+          }
+
           imageRes.pipe(file);
           file.on('finish', () => {
-            file.close(resolve);
+            file.close(() => {
+              console.log(`🖼️ IMAGINA - Imagen descargada y guardada en: ${filePath}`);
+              resolve();
+            });
           });
         }).on('error', (err) => {
           fs.unlink(filePath, () => {}); // Eliminar archivo parcial
+          console.error('🖼️ IMAGINA - Error al descargar la imagen:', err);
           reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.');
         });
       });
 
       // Enviar la imagen al usuario
+      console.log('🖼️ IMAGINA - Enviando imagen al usuario.');
       await conn.sendFile(m.chat, filePath, 'imagen.jpg', '🎨 Aquí tienes tu imagen.', m);
 
       // Eliminar el archivo temporal después de enviarlo
       fs.unlink(filePath, (err) => {
         if (err) {
-          console.error('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al eliminar la imagen temporal:', err);
+          console.error('🖼️ IMAGINA - Error al eliminar la imagen temporal:', err);
+        } else {
+          console.log(`🖼️ IMAGINA - Archivo temporal eliminado: ${filePath}`);
         }
       });
 
     } catch (error) {
-      console.error('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️', error);
+      console.error('🖼️ IMAGINA - Error en el proceso:', error);
       await conn.reply(m.chat, `🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Ocurrió un error. Por favor, inténtalo de nuevo más tarde.`, m);
     }
   }
