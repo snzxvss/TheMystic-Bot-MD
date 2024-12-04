@@ -1,6 +1,5 @@
 import https from 'https';
 import { Buffer } from 'buffer';
-import { v4 as uuidv4 } from 'uuid';
 
 const handler = async (m, { conn, command, args, text, usedPrefix }) => {
   if (['imagine', 'imag', 'gen'].includes(command)) {
