@@ -1,5 +1,42 @@
 import https from 'https';
-import { Buffer } from 'buffer';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
+// Obtener __dirname en ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Definir el directorio temporal dentro de la carpeta del plugin
+const tempDir = path.join(__dirname, 'temp');
+
+// Asegurar que el directorio temporal exista
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+// Función para limpiar archivos temporales no enviados
+const clearTmp = () => {
+  fs.readdir(tempDir, (err, files) => {
+    if (err) {
+      console.error('🖼️ IMAGINA - LIMPIEZA TEMPORAL\n\n⚠️ No se pudo leer el directorio temporal:', err);
+      return;
+    }
+    files.forEach(file => {
+      const filePath = path.join(tempDir, file);
+      fs.unlink(filePath, err => {
+        if (err) {
+          console.error('🖼️ IMAGINA - LIMPIEZA TEMPORAL\n\n⚠️ No se pudo eliminar el archivo temporal:', err);
+        }
+      });
+    });
+  });
+};
+
+// Opcional: Limpiar archivos temporales al iniciar
+clearTmp();
 
 const handler = async (m, { conn, command, args, text, usedPrefix }) => {
   if (['imagine', 'imag', 'gen'].includes(command)) {
@@ -56,18 +93,32 @@ _${usedPrefix + command} Playa al atardecer_`;
         req.end();
       });
 
-      // Descargar la imagen y enviarla al usuario como buffer
-      https.get(imageUrl, (imageRes) => {
-        const chunks = [];
-        imageRes.on('data', (chunk) => {
-          chunks.push(chunk);
+      // Generar nombre de archivo único
+      const fileName = `${uuidv4()}_imagen.jpg`;
+      const filePath = path.join(tempDir, fileName);
+
+      // Descargar la imagen y guardarla en el directorio temporal
+      await new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(filePath);
+        https.get(imageUrl, (imageRes) => {
+          imageRes.pipe(file);
+          file.on('finish', () => {
+            file.close(resolve);
+          });
+        }).on('error', (err) => {
+          fs.unlink(filePath, () => {}); // Eliminar archivo parcial
+          reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.');
         });
-        imageRes.on('end', () => {
-          const buffer = Buffer.concat(chunks);
-          conn.sendFile(m.chat, buffer, 'imagen.jpg', '🎨 Aquí tienes tu imagen.', m);
-        });
-      }).on('error', () => {
-        conn.reply(m.chat, '🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.', m);
+      });
+
+      // Enviar la imagen al usuario
+      await conn.sendFile(m.chat, filePath, 'imagen.jpg', '🎨 Aquí tienes tu imagen.', m);
+
+      // Eliminar el archivo temporal después de enviarlo
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al eliminar la imagen temporal:', err);
+        }
       });
 
     } catch (error) {
