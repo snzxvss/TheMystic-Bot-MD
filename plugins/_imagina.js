@@ -1,13 +1,6 @@
 import https from 'https';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { Buffer } from 'buffer';
 import { v4 as uuidv4 } from 'uuid';
-
-// Obtener __dirname en ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const handler = async (m, { conn, command, args, text, usedPrefix }) => {
   if (['imagine', 'imag', 'gen'].includes(command)) {
@@ -64,38 +57,28 @@ _${usedPrefix + command} Playa al atardecer_`;
         req.end();
       });
 
-      // Asegurar que el directorio temporal exista
-      const tempDir = path.join(__dirname, 'temp');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      // Descargar la imagen y enviarla al usuario
-      const filePath = path.join(tempDir, `${uuidv4()}_imagen.jpg`);
-      const file = fs.createWriteStream(filePath);
-
+      // Descargar la imagen y enviarla al usuario como buffer
       https.get(imageUrl, (imageRes) => {
-        imageRes.pipe(file);
-        file.on('finish', () => {
-          file.close();
-          conn.sendFile(m.chat, filePath, 'imagen.jpg', '🎨 Aquí tienes tu imagen.', m);
-          // Opcional: Eliminar la imagen después de enviarla
-          fs.unlink(filePath, (err) => {
-            if (err) console.error('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al eliminar la imagen temporal:', err);
-          });
+        const chunks = [];
+        imageRes.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
+        imageRes.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          conn.sendFile(m.chat, buffer, 'imagen.jpg', '🎨 Aquí tienes tu imagen.', m);
         });
       }).on('error', () => {
-        throw '🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.';
+        conn.reply(m.chat, '🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.', m);
       });
 
     } catch (error) {
       console.error('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️', error);
-      throw `🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Ocurrió un error. Por favor, inténtalo de nuevo más tarde.`;
+      await conn.reply(m.chat, `🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Ocurrió un error. Por favor, inténtalo de nuevo más tarde.`, m);
     }
   }
 };
 
-handler.help = ['gen', 'imagine', 'imag'];
+handler.help = ['gen', 'imagina', 'imag'];
 handler.tags = ['image'];
 handler.command = /^(gen|imagina|imag)$/i;
 
