@@ -122,29 +122,13 @@ const handler = async (m, { conn, command, args, text, usedPrefix }) => {
   
         console.log(`🖼️ IMAGINA - Descargando imagen desde URL: ${imageUrl}`);
   
-        // Descargar la imagen y almacenarla en un buffer
-        const imageBuffer = await new Promise((resolve, reject) => {
-          https.get(imageUrl, (imageRes) => {
-            if (imageRes.statusCode !== 200) {
-              console.error(`🖼️ IMAGINA - Error al descargar la imagen: Status Code ${imageRes.statusCode}`);
-              reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.');
-              return;
-            }
-  
-            const chunks = [];
-            imageRes.on('data', (chunk) => {
-              chunks.push(chunk);
-            });
-            imageRes.on('end', () => {
-              const buffer = Buffer.concat(chunks);
-              console.log('🖼️ IMAGINA - Imagen descargada exitosamente en memoria.');
-              resolve(buffer);
-            });
-          }).on('error', (err) => {
-            console.error('🖼️ IMAGINA - Error al descargar la imagen:', err);
-            reject('🖼️ IMAGINA - GENERAR IMAGEN\n\n⚠️ Error al descargar la imagen.');
-          });
-        });
+        // Descargar la imagen utilizando axios
+        const imageBuffer = await axios.get(imageUrl, {
+          responseType: 'arraybuffer',
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: false, // ⚠️ Usar solo para pruebas
+          }),
+        }).then(response => Buffer.from(response.data, 'binary'));
   
         // Enviar la imagen al usuario desde el buffer
         console.log('🖼️ IMAGINA - Enviando imagen al usuario.');
