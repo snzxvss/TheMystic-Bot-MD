@@ -1,18 +1,27 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+const { downloadContentFromMessage } = await import("baileys");
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const {downloadContentFromMessage} = (await import("baileys"));
+const handler = async (m, { conn }) => {
+  const datas = global;
+  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje;
+  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`));
+  const tradutor = _translate.plugins.herramientas_readviewonce;
 
-const handler = async (m, {conn}) => {
-  const datas = global
-  const idioma = datas.db.data.users[m.sender].language || global.defaultLenguaje
-  const _translate = JSON.parse(fs.readFileSync(`./src/languages/${idioma}.json`))
-  const tradutor = _translate.plugins.herramientas_readviewonce
+  const tmpDir = path.join(process.cwd(), 'src', 'tmp');
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+  }
 
   if (!m.quoted) throw tradutor.texto1;
   if (m.quoted.mtype !== 'viewOnceMessageV2') throw tradutor.texto2;
   const msg = m.quoted.message;
   const type = Object.keys(msg)[0];
-  const media = await downloadContentFromMessage(msg[type], type == 'imageMessage' ? 'image' : 'video');
+  const media = await downloadContentFromMessage(msg[type], type === 'imageMessage' ? 'image' : 'video');
   let buffer = Buffer.from([]);
   for await (const chunk of media) {
     buffer = Buffer.concat([buffer, chunk]);

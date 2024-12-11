@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "build": "pm2 start index.js",
+    "b": "pm2 start index.js",
     "qr": "node index.js qr",
     "code": "node index.js code",
     "eslint": "eslint .",
