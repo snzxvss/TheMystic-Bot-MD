@@ -139,10 +139,9 @@ async function handleVideo(m, conn, command, yt_play, retryCount) {
       if (error.code === 'ECONNABORTED') {
         console.warn('Axios timeout. Reintentando...');
         await new Promise(resolve => setTimeout(resolve, 5000));
-      } else if (error.response && [500, 502, 503].includes(error.response.status)) {
+      } else if (error.response && [400, 404, 500, 502, 503].includes(error.response.status)) {
         console.warn(`Error ${error.response.status}. Reintentando...`);
         await conn.sendMessage(m.chat, { text: 'El servidor está ocupado. Tu petición está en cola. Por favor espera...' }, { quoted: m });
-
         await new Promise(resolve => setTimeout(resolve, 5000));
       } else {
         console.error('Error fetching video:', error);
