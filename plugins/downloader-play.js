@@ -263,7 +263,7 @@ async function handleAxiosError(error, conn, m, { command, yt_play, retryCount }
   if (error.code === 'ECONNABORTED') {
     console.warn('Axios timeout. Enviando mensaje de timeout.');
     await conn.sendMessage(m.chat, { text: '❌ La solicitud ha excedido el tiempo de espera. Por favor, inténtalo de nuevo.' }, { quoted: m });
-  } else if (error.response && [500, 502, 503].includes(error.response.status)) {
+  } else if (error.response && [400, 404, 500, 502, 503].includes(error.response.status)) {
     console.warn(`Error ${error.response.status}. Enviando mensaje de servidor ocupado.`);
     await conn.sendMessage(m.chat, { text: '> ⚠️ El servidor está ocupado. \n> Si no se envia en unos instantes, inténtalo de nuevo más tarde.' }, { quoted: m });
   } else {
