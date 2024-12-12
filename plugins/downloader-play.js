@@ -128,7 +128,7 @@ async function handleVideo(m, conn, command, yt_play, retryCount) {
       const response = await axios.get(`https://api-ytdl-snzxvss-a837a3eabd4d.herokuapp.com/download/video`, {
         params: {
           url: yt_play[0].url,
-          quality: '360p'
+          quality: '360p' // 720p, 480p, 360p, 240p, 144p {360p es el ideal en la mayoría de los casos.} 
         },
         responseType: 'arraybuffer',
         timeout: 30000
@@ -138,8 +138,6 @@ async function handleVideo(m, conn, command, yt_play, retryCount) {
     } catch (error) {
       if (error.code === 'ECONNABORTED') {
         console.warn('Axios timeout. Reintentando...');
-        await conn.sendMessage(m.chat, { text: '❌ La solicitud ha excedido el tiempo de espera. Reintentando...' }, { quoted: m });
-
         await new Promise(resolve => setTimeout(resolve, 5000));
       } else if (error.response && [500, 502, 503].includes(error.response.status)) {
         console.warn(`Error ${error.response.status}. Reintentando...`);
@@ -268,7 +266,7 @@ async function handleAxiosError(error, conn, m, { command, yt_play, retryCount }
     await conn.sendMessage(m.chat, { text: '❌ La solicitud ha excedido el tiempo de espera. Por favor, inténtalo de nuevo.' }, { quoted: m });
   } else if (error.response && [500, 502, 503].includes(error.response.status)) {
     console.warn(`Error ${error.response.status}. Enviando mensaje de servidor ocupado.`);
-    await conn.sendMessage(m.chat, { text: '⚠️ El servidor está ocupado. \n> Por favor, inténtalo de nuevo más tarde. 🔄' }, { quoted: m });
+    await conn.sendMessage(m.chat, { text: '> ⚠️ El servidor está ocupado. \n> Si no se envia en unos instantes, inténtalo de nuevo más tarde.' }, { quoted: m });
   } else {
     console.error('Axios Error:', error);
     await conn.sendMessage(m.chat, { text: '> ❌ Ocurrió un error al procesar tu solicitud. \n> Por favor, inténtalo de nuevo más tarde.' }, { quoted: m });
