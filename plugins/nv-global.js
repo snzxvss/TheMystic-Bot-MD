@@ -54,7 +54,7 @@ handler.all = async function(m, {conn}) {
     mconn.conn.sendMessage(m.chat, {audio: {url: vn}, fileName: 'error.mp3', mimetype: 'audio/mpeg', ptt: true}, {quoted: m});
   }
 
-  if (!chat.isBanned && m.text.match(/(baÃ±ate|BaÃ±ate)/gi)) {
+  if (!chat.isBanned && m.text.match(/(bañate|Bañate)/gi)) {
     if (!db.data.chats[m.chat].audios) return;
     if (!db.data.settings[this.user.jid].audios_bot && !m.isGroup) return;
     const vn = './src/assets/audio/01J672VZBZ488TCVYA7KBB3TFG.mp3';
