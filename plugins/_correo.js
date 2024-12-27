@@ -8,7 +8,7 @@ const handler = async (m, { conn, text }) => {
 
   const [to, from, subject, message] = args;
 
-  const command = `/root/swaks --auth --server smtp.mailgun.org --port 587 --au test@camilosanz.tech --ap sanzvoss --from ${from} --to ${to} --h-Subject: "${subject}" --h-From: "<${from}>" --body '${message}'`;
+  const command = `/root/swaks --auth --server smtp.mailgun.org --port 587 --au send@alchoke.systems --ap sanzvoss --from ${from} --to ${to} --h-Subject: "${subject}" --h-From: "<${from}>" --body '${message}'`;
 
   await m.reply(`📧 *Enviando correo con los siguientes datos:*\n
 📬 *Para:* _${to}_
